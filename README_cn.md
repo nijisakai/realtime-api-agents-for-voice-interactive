@@ -190,7 +190,7 @@
 - Brian Fioca - [bfioca](https://github.com/bfioca)
 
 ### 项目开发者
-- **开发者**: 王亚荣 (Yarong Wang)
+- **开发者**: 王雅溶
 - **机构**: 北京师范大学智慧学习研究院
 - **邮箱**: [yarong@bnu.edu.cn](mailto:yarong@bnu.edu.cn)
 
