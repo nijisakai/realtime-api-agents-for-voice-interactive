@@ -1,0 +1,187 @@
+'use client';
+import React, { useState } from 'react';
+
+const About: React.FC = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      {/* About button - fixed position at bottom right with text */}
+      <button
+        onClick={() => setIsOpen(true)}
+        className="fixed bottom-4 right-4 z-50 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-3 shadow-lg transition-all duration-300 hover:scale-105 font-medium text-sm"
+        title="About this application"
+      >
+        About this project
+      </button>
+
+      {/* Modal */}
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+          <div className="bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl max-w-2xl max-h-[80vh] overflow-y-auto m-4">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 p-6 border-b border-gray-700">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                  About OpenAI Realtime Agents
+                </h2>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 text-gray-100 space-y-6">
+              {/* Introduction */}
+              <section>
+                <h3 className="text-lg font-semibold text-blue-400 mb-3">Program Introduction</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  This is an advanced intelligent real-time conversation system built on OpenAI&apos;s Realtime API, 
+                  featuring sophisticated debate analysis and seamless human-AI collaborative discussion capabilities. 
+                  The system intelligently identifies conversation positions, extracts key viewpoints, 
+                  generates contextual key tags, and provides comprehensive real-time debate analysis with 
+                  dynamic win rate calculations and topic identification.
+                </p>
+              </section>
+
+              {/* How to Use */}
+              <section>
+                <h3 className="text-lg font-semibold text-cyan-400 mb-3">How to Use</h3>
+                <div className="text-gray-300 space-y-3">
+                  <div>
+                    <h4 className="font-medium text-white mb-2">1. Select Agent Configuration</h4>
+                    <p>Choose from specialized agent modes: <strong>Debate Moderator</strong> (for structured pro/con debates), <strong>Human-AI Conversation</strong> (for collaborative human-AI discussions), or explore other agent configurations. Each mode offers unique analysis capabilities.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-white mb-2">2. Connect and Start Speaking</h4>
+                    <p>Click the &ldquo;Connect&rdquo; button to establish a real-time connection with our voice processing system. Start speaking naturally - the system captures and analyzes your speech with advanced voice recognition technology.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-white mb-2">3. Engage in Intelligent Discussions</h4>
+                    <p>Express your viewpoints clearly and engage in meaningful dialogue. The AI responds intelligently, analyzes positions, provides counter-arguments or supportive analysis, and adapts to the conversation flow dynamically.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-white mb-2">4. Monitor Real-time Analysis</h4>
+                    <p>Watch the comprehensive live analysis panel featuring automatic topic identification, position classification, extracted key viewpoints, intelligent key tags, and real-time win rate calculations that adapt to the discussion flow.</p>
+                  </div>
+                </div>
+              </section>
+
+              {/* Features */}
+              <section>
+                <h3 className="text-lg font-semibold text-green-400 mb-3">Key Features</h3>
+                <ul className="text-gray-300 space-y-2">
+                  <li className="flex items-start">
+                    <span className="text-green-400 mr-2">•</span>
+                    <span><strong>Real-time Voice Processing:</strong> Advanced speech recognition with intelligent conversation capture and natural language understanding</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-green-400 mr-2">•</span>
+                    <span><strong>Intelligent Debate Analysis:</strong> Automatic position identification, key viewpoint extraction, and contextual argument analysis</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-green-400 mr-2">•</span>
+                    <span><strong>Multiple AI Agent Modes:</strong> Specialized configurations including Debate Moderator and Human-AI Conversation with adaptive behaviors</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-green-400 mr-2">•</span>
+                    <span><strong>Dynamic Analysis Dashboard:</strong> Real-time win rate calculations, intelligent key tag generation, and topic identification</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-green-400 mr-2">•</span>
+                    <span><strong>Advanced LLM Integration:</strong> Context-aware global analysis with sophisticated viewpoint correction and conversation flow understanding</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-green-400 mr-2">•</span>
+                    <span><strong>Optimized UI Experience:</strong> Height-optimized panels, modern design, and responsive layout for seamless interaction</span>
+                  </li>
+                </ul>
+              </section>
+
+              {/* Human-AI Collaboration */}
+              <section>
+                <h3 className="text-lg font-semibold text-purple-400 mb-3">Advancing Human-AI Collaboration</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  This system represents a breakthrough in human-AI collaborative intelligence, enabling 
+                  natural, dynamic real-time discussions between humans and AI agents. It enhances critical thinking, 
+                  develops advanced debate skills, and provides an innovative educational platform for interactive learning. 
+                  The AI functions not merely as a tool, but as an intelligent collaborative partner capable of engaging in 
+                  meaningful discussions, challenging perspectives constructively, and facilitating deep learning through 
+                  sophisticated dialogue. With adaptive analysis and real-time feedback, it creates an environment where 
+                  human creativity meets AI intelligence for unprecedented collaborative potential.
+                </p>
+              </section>
+
+              {/* Technical Specifications */}
+              <section>
+                <h3 className="text-lg font-semibold text-indigo-400 mb-3">Technical Specifications</h3>
+                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <h4 className="text-indigo-300 font-medium mb-2">Frontend Technology</h4>
+                      <ul className="text-gray-300 space-y-1">
+                        <li>• Next.js 15.4.3 (React Framework)</li>
+                        <li>• TypeScript for type safety</li>
+                        <li>• Tailwind CSS for modern UI</li>
+                        <li>• Real-time audio processing</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="text-indigo-300 font-medium mb-2">AI & Analysis</h4>
+                      <ul className="text-gray-300 space-y-1">
+                        <li>• OpenAI Realtime API integration</li>
+                        <li>• Advanced LLM analysis pipeline</li>
+                        <li>• Dynamic conversation state management</li>
+                        <li>• Intelligent key tag generation</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* Open Source */}
+              <section>
+                <h3 className="text-lg font-semibold text-yellow-400 mb-3">Open Source Reference</h3>
+                <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-600">
+                  <p className="text-gray-300 mb-3">
+                    This project is based on OpenAI&apos;s official Realtime Agents framework:
+                  </p>
+                  <a
+                    href="https://github.com/openai/openai-realtime-agents"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 0C4.477 0 0 4.484 0 10.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0110 4.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.203 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.942.359.31.678.921.678 1.856 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0020 10.017C20 4.484 15.522 0 10 0z" clipRule="evenodd" />
+                    </svg>
+                    github.com/openai/openai-realtime-agents
+                  </a>
+                </div>
+              </section>
+
+              {/* Developer Info */}
+
+
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-900/50 p-4 border-t border-gray-700 rounded-b-2xl">
+              <div className="text-center text-gray-400 text-sm">
+                Built with OpenAI Realtime API • Enhanced for Human-AI Collaborative Intelligence • v2.0
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
+};
+
+export default About;

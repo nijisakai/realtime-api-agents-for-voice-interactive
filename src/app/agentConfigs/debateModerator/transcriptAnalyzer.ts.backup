@@ -1,0 +1,392 @@
+// 从转写文本中分析辩论内容的系统 - LLM增强版
+import { TranscriptItem } from '../../types';
+import { getCurrentDebateState, setDebateTopic } from './debateAnalyzer';
+import { extractUserSpeeches, analyzeSpeeches } from './llmAnalyzer';
+
+// ===== LLM驱动的语义分析系统 =====
+
+// 更新辩论状态（使用LLM分析）
+export async function updateDebateStateFromTranscript(transcriptItems: TranscriptItem[]) {
+  const speeches = extractUserSpeeches(transcriptItems);
+  
+  if (speeches.length === 0) {
+    console.log('📭 没有找到用户发言');
+    return getCurrentDebateState();
+  }
+
+  console.log('🤖 开始LLM语义分析:', speeches);
+
+  try {
+    // 使用LLM进行智能分析
+    const analysis = await analyzeSpeeches(speeches);
+    
+    // 自动设置辩论主题
+    if (analysis.topic) {
+      setDebateTopic(analysis.topic);
+      console.log('🎯 检测到辩论主题:', analysis.topic);
+    }
+
+    // 计算胜率 - 基于发言数量和质量
+    const totalSpeeches = analysis.positive.speeches.length + analysis.negative.speeches.length;
+    const positiveRate = totalSpeeches > 0 ? Math.round((analysis.positive.speeches.length / totalSpeeches) * 100) : 50;
+    const negativeRate = 100 - positiveRate;
+
+    // 更新全局状态
+    const currentState = getCurrentDebateState();
+    
+    // 使用LLM生成的汇总观点
+    currentState.participants.positive.keyPoints = analysis.positive.consolidatedViewpoint ? 
+      [analysis.positive.consolidatedViewpoint] : [];
+    currentState.participants.negative.keyPoints = analysis.negative.consolidatedViewpoint ? 
+      [analysis.negative.consolidatedViewpoint] : [];
+      
+    currentState.participants.positive.speechCount = analysis.positive.speeches.length;
+    currentState.participants.negative.speechCount = analysis.negative.speeches.length;
+    
+    // 使用LLM生成的智能标签
+    currentState.keywords.positive = analysis.positive.smartTags || [];
+    currentState.keywords.negative = analysis.negative.smartTags || [];
+    
+    currentState.winRate.positive = positiveRate;
+    currentState.winRate.negative = negativeRate;
+
+    console.log('✅ LLM分析完成，状态已更新:', {
+      总发言: totalSpeeches,
+      正方观点: analysis.positive.consolidatedViewpoint,
+      反方观点: analysis.negative.consolidatedViewpoint,
+      正方标签: analysis.positive.smartTags,
+      反方标签: analysis.negative.smartTags,
+      胜率分布: `${positiveRate}% vs ${negativeRate}%`
+    });
+    
+    return currentState;
+    
+  } catch (error) {
+    console.error('❌ LLM分析失败，使用备用方案:', error);
+    return fallbackAnalysis(speeches);
+  }
+}
+
+// 备用分析方案（当LLM不可用时）
+function fallbackAnalysis(speeches: string[]) {
+  console.log('🔄 使用规则备用分析');
+  
+  const currentState = getCurrentDebateState();
+  
+  // 简单的交替分配
+  const positiveSpeeches: string[] = [];
+  const negativeSpeeches: string[] = [];
+  
+  speeches.forEach((speech, index) => {
+    if (speech.length < 5) return;
+    
+    if (index % 2 === 0) {
+      positiveSpeeches.push(speech);
+    } else {
+      negativeSpeeches.push(speech);
+    }
+  });
+  
+  // 更新状态
+  currentState.participants.positive.keyPoints = positiveSpeeches.slice(-1);
+  currentState.participants.negative.keyPoints = negativeSpeeches.slice(-1);
+  currentState.participants.positive.speechCount = positiveSpeeches.length;
+  currentState.participants.negative.speechCount = negativeSpeeches.length;
+  
+  const totalSpeeches = positiveSpeeches.length + negativeSpeeches.length;
+  const positiveRate = totalSpeeches > 0 ? Math.round((positiveSpeeches.length / totalSpeeches) * 100) : 50;
+  
+  currentState.winRate.positive = positiveRate;
+  currentState.winRate.negative = 100 - positiveRate;
+  
+  return currentState;
+}
+
+// 从转写文本中提取所有用户发言 - 改进版
+export function extractUserSpeeches(transcriptItems: TranscriptItem[]): string[] {
+  return transcriptItems
+    .filter(item => item.type === 'MESSAGE' && item.role === 'user')
+    .map(item => {
+      // 优先从realtime转写数据中提取
+      let text = '';
+      
+      if (typeof item.data === 'string') {
+        text = item.data;
+      } else if (item.data && typeof item.data === 'object') {
+        // 优先使用realtime API的transcript字段
+        text = item.data.transcript || item.data.text || item.data.content || '';
+      }
+      
+      if (!text && item.title) {
+        text = item.title;
+      }
+      
+      return text.trim();
+    })
+    .filter(text => {
+      // 过滤无意义的短语和常见回应
+      if (text.length < 3) return false;
+      
+      const meaninglessWords = [
+        '好的', '嗯', '啊', '哦', '呃', '额', '嗯嗯', '对', '是的', '好', '行',
+        '知道了', '明白了', '收到', 'ok', 'OK', 'yes', 'yeah', '嗯哼'
+      ];
+      
+      return !meaninglessWords.includes(text) && !meaninglessWords.some(word => text === word);
+    });
+}
+
+// 智能分析所有发言 - 增强版
+export function analyzeAllSpeeches(speeches: string[]) {
+  console.log('🔍 开始智能分析发言:', speeches.length, '条');
+  
+  const results = {
+    positive: {
+      speeches: [] as string[],
+      consolidatedViewpoint: '', // 汇总观点
+      smartTags: [] as string[] // 智能标签
+    },
+    negative: {
+      speeches: [] as string[],
+      consolidatedViewpoint: '', // 汇总观点
+      smartTags: [] as string[] // 智能标签
+    }
+  };
+
+  // 先分类所有发言
+  speeches.forEach((speech, index) => {
+    const stance = identifyStanceFromText(speech, index, speeches.slice(0, index));
+    
+    if (stance === 'positive') {
+      results.positive.speeches.push(speech);
+    } else if (stance === 'negative') {
+      results.negative.speeches.push(speech);
+    }
+  });
+
+  // 生成汇总观点和智能标签
+  results.positive.consolidatedViewpoint = generateConsolidatedViewpoint(results.positive.speeches);
+  results.negative.consolidatedViewpoint = generateConsolidatedViewpoint(results.negative.speeches);
+  
+  results.positive.smartTags = generateSmartTags(results.positive.speeches);
+  results.negative.smartTags = generateSmartTags(results.negative.speeches);
+
+  console.log('📊 分析完成:', {
+    正方发言数: results.positive.speeches.length,
+    反方发言数: results.negative.speeches.length,
+    正方汇总观点: results.positive.consolidatedViewpoint,
+    反方汇总观点: results.negative.consolidatedViewpoint
+  });
+
+  return results;
+}
+
+// 生成汇总观点 - 动态更新版
+function generateConsolidatedViewpoint(speeches: string[]): string {
+  if (speeches.length === 0) return '';
+  
+  // 按时间顺序，最新的发言权重更高
+  const recentSpeeches = speeches.slice(-3); // 取最近3条发言
+  
+  // 提取实质性观点
+  const meaningfulPoints: string[] = [];
+  
+  recentSpeeches.forEach(speech => {
+    // 过滤掉纯粹的同意/反对词，寻找实质性内容
+    if (speech.length > 10) { // 至少10个字符才考虑
+      const cleanedSpeech = speech
+        .replace(/^(我觉得|我认为|我想|我觉得说|就是说|其实)/g, '')
+        .replace(/(好的|对的|是的|没错)$/g, '')
+        .trim();
+      
+      if (cleanedSpeech.length > 5) {
+        meaningfulPoints.push(cleanedSpeech);
+      }
+    }
+  });
+  
+  if (meaningfulPoints.length === 0) {
+    // 如果没有实质性观点，返回最后一条发言的清理版本
+    const lastSpeech = speeches[speeches.length - 1];
+    return lastSpeech.length > 20 ? lastSpeech.substring(0, 50) + '...' : lastSpeech;
+  }
+  
+  // 选择最新且最有代表性的观点
+  const latestMeaningfulPoint = meaningfulPoints[meaningfulPoints.length - 1];
+  
+  // 生成一句话总结，不超过50字
+  const summary = latestMeaningfulPoint.length > 50 
+    ? latestMeaningfulPoint.substring(0, 50) + '...'
+    : latestMeaningfulPoint;
+    
+  return summary;
+}
+
+// 生成智能标签
+function generateSmartTags(speeches: string[]): string[] {
+  if (speeches.length === 0) return [];
+  
+  const allText = speeches.join(' ');
+  const rawKeywords = extractKeywordsFromText(allText);
+  
+  // 智能处理关键词，生成简短标签
+  const smartTags = rawKeywords
+    .filter(keyword => keyword.length >= 2 && keyword.length <= 6) // 合适长度
+    .map(keyword => refineKeyword(keyword)) // 精炼关键词
+    .filter((tag, index, arr) => arr.indexOf(tag) === index) // 去重
+    .slice(0, 6); // 限制数量
+  
+  return smartTags;
+}
+
+// 精炼关键词
+function refineKeyword(keyword: string): string {
+  // 移除常见的无意义词汇
+  const stopWords = ['我们', '这个', '那个', '一个', '可以', '应该', '需要', '因为', '所以'];
+  
+  if (stopWords.includes(keyword)) return '';
+  
+  // 提取核心概念
+  if (keyword.includes('技术')) return '技术';
+  if (keyword.includes('环境')) return '环境';
+  if (keyword.includes('经济')) return '经济';
+  if (keyword.includes('社会')) return '社会';
+  if (keyword.includes('教育')) return '教育';
+  if (keyword.includes('健康')) return '健康';
+  
+  return keyword;
+}
+
+// 提取关键观点
+// 提取关键词 - 改进版，严格过滤无意义词汇
+function extractKeywordsFromText(text: string): string[] {
+  // 扩展的停用词列表
+  const stopWords = [
+    // 基础连接词和代词
+    '但是', '然后', '因为', '所以', '如果', '虽然', '虽说', '可是', '不过', 
+    '这个', '那个', '什么', '怎么', '为什么', '哪里', '哪个', '怎样',
+    
+    // 语气词和回应词
+    '好的', '嗯嗯', '对的', '是的', '没错', '当然', '确实', '应该', '可以',
+    '需要', '必须', '能够', '可能', '也许', '大概', '差不多', '知道', '明白',
+    
+    // 程度词和时间词
+    '非常', '特别', '很多', '一些', '所有', '全部', '现在', '今天', '以前',
+    '以后', '总是', '经常', '有时', '已经', '正在', '将要', '刚刚',
+    
+    // 无意义短语
+    '谢谢', '不好意思', '请问', '知道了', '明白了', '收到了', '好吧'
+  ];
+
+  // 提取中文词汇（2-6字符）
+  const chineseWords = text.match(/[\u4e00-\u9fa5]{2,6}/g) || [];
+  
+  // 提取英文词汇
+  const englishWords = text.match(/[a-zA-Z]{3,8}/g) || [];
+  
+  // 合并并过滤
+  const allWords = [...chineseWords, ...englishWords];
+  
+  const filteredWords = allWords.filter(word => {
+    const lowerWord = word.toLowerCase();
+    
+    // 过滤停用词
+    if (stopWords.includes(word) || stopWords.includes(lowerWord)) return false;
+    
+    // 过滤纯数字或无意义字符
+    if (/^\d+$/.test(word) || /^[^\u4e00-\u9fa5a-zA-Z]+$/.test(word)) return false;
+    
+    // 保留有实际含义的词汇
+    return word.length >= 2;
+  });
+
+  // 词频统计并去重
+  const wordFreq: Record<string, number> = {};
+  filteredWords.forEach(word => {
+    wordFreq[word] = (wordFreq[word] || 0) + 1;
+  });
+
+  // 返回频率最高且有意义的关键词
+  return Object.entries(wordFreq)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 6) // 增加到6个关键词
+    .map(([word]) => word)
+    .filter(word => word.length >= 2); // 确保都是有意义的词汇
+}
+
+// 更新辩论状态（不依赖工具调用）
+export function updateDebateStateFromTranscript(transcriptItems: TranscriptItem[]) {
+  const speeches = extractUserSpeeches(transcriptItems);
+  
+  if (speeches.length === 0) {
+    console.log('没有找到用户发言');
+    return getCurrentDebateState();
+  }
+
+  const analysis = analyzeAllSpeeches(speeches);
+  
+  // 自动检测辩论主题
+  const topic = detectDebateTopic(speeches);
+  if (topic) {
+    setDebateTopic(topic);
+  }
+
+  // 计算胜率 - 基于发言数量
+  const totalSpeeches = analysis.positive.speeches.length + analysis.negative.speeches.length;
+  const positiveRate = totalSpeeches > 0 ? Math.round((analysis.positive.speeches.length / totalSpeeches) * 100) : 50;
+  const negativeRate = 100 - positiveRate;
+
+  // 更新全局状态 - 使用汇总模式
+  const currentState = getCurrentDebateState();
+  
+  // 使用汇总观点替代累积观点
+  currentState.participants.positive.keyPoints = analysis.positive.consolidatedViewpoint ? 
+    [analysis.positive.consolidatedViewpoint] : [];
+  currentState.participants.negative.keyPoints = analysis.negative.consolidatedViewpoint ? 
+    [analysis.negative.consolidatedViewpoint] : [];
+    
+  currentState.participants.positive.speechCount = analysis.positive.speeches.length;
+  currentState.participants.negative.speechCount = analysis.negative.speeches.length;
+  
+  // 使用智能标签替代关键词
+  currentState.keywords.positive = analysis.positive.smartTags || [];
+  currentState.keywords.negative = analysis.negative.smartTags || [];
+  
+  currentState.winRate.positive = positiveRate;
+  currentState.winRate.negative = negativeRate;
+
+  console.log('✅ 更新后的辩论状态 (汇总模式):', {
+    总发言: totalSpeeches,
+    正方观点汇总: analysis.positive.consolidatedViewpoint,
+    反方观点汇总: analysis.negative.consolidatedViewpoint,
+    正方智能标签: analysis.positive.smartTags,
+    反方智能标签: analysis.negative.smartTags,
+    胜率分布: `${positiveRate}% vs ${negativeRate}%`
+  });
+  
+  return currentState;
+}
+
+// 检测辩论主题
+function detectDebateTopic(speeches: string[]): string {
+  // 合并所有发言
+  const allText = speeches.join(' ');
+  
+  // 寻找主题相关的关键词组合
+  const topicKeywords = allText.match(/关于|讨论|辩论|主题|话题/g);
+  if (topicKeywords) {
+    // 尝试提取主题描述
+    const topicMatch = allText.match(/(关于|讨论|辩论|主题|话题)([^。！？.!?]{5,30})/);
+    if (topicMatch) {
+      return topicMatch[2].trim();
+    }
+  }
+
+  // 基于高频关键词推测主题
+  const keywords = extractKeywordsFromText(allText);
+  if (keywords.length >= 2) {
+    return keywords.slice(0, 3).join('、') + '相关话题';
+  }
+
+  return '辩论话题';
+}
