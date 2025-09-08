@@ -192,8 +192,12 @@ function App() {
         console.error('❌ 获取临时密钥失败:', errorData);
         
         // 显示用户友好的错误信息
-        if (errorData.message) {
+        if (errorData.error && errorData.error.message) {
+          alert(`OpenAI API 错误: ${errorData.error.message}`);
+        } else if (errorData.message) {
           alert(`连接失败: ${errorData.message}`);
+        } else if (errorData.error && errorData.error.code === 'account_deactivated') {
+          alert('OpenAI 账户已被停用，请检查您的 API 密钥或联系 OpenAI 支持');
         } else {
           alert('无法连接到OpenAI服务，请检查网络连接或稍后重试');
         }
@@ -201,8 +205,34 @@ function App() {
       }
 
       const data = await response.json();
-      console.log('✅ 临时密钥获取成功');
-      return data.client_secret.value;
+      console.log('✅ 临时密钥获取成功', data);
+      
+      // Handle error responses that might slip through with 200 status
+      if (data.error) {
+        console.error('❌ API 返回错误:', data.error);
+        if (data.error.code === 'account_deactivated') {
+          alert('OpenAI 账户已被停用，请检查您的 API 密钥或联系 OpenAI 支持');
+        } else {
+          alert(`OpenAI API 错误: ${data.error.message || '未知错误'}`);
+        }
+        return null;
+      }
+      
+      // Check the response structure and handle different formats
+      if (data.client_secret) {
+        // If client_secret is an object with a value property
+        if (typeof data.client_secret === 'object' && data.client_secret.value) {
+          return data.client_secret.value;
+        }
+        // If client_secret is a string directly
+        if (typeof data.client_secret === 'string') {
+          return data.client_secret;
+        }
+      }
+      
+      console.error('❌ 响应结构不符合预期:', data);
+      alert('服务器响应格式错误，请联系管理员');
+      return null;
     } catch (error) {
       console.error('❌ 网络错误:', error);
       alert('网络连接失败，请检查网络设置后重试');
